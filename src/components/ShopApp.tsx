@@ -7,6 +7,7 @@ import {
   AccountHub,
   AddressesScreen,
   AdminPartnersScreen,
+  DeleteAccountScreen,
   EditProfileScreen,
   HelpScreen,
   PartnerScreen,
@@ -142,8 +143,7 @@ export default function ShopApp() {
             </button>
             <a href="/privacy" className="text-primary hover:underline">
               Privacy policy
-            </a>
-          </div>
+            </a>          </div>
         </div>
       </footer>
 
@@ -227,6 +227,8 @@ function Account() {
       return <HelpScreen />;
     case "adminPartners":
       return <AdminPartnersScreen />;
+    case "deleteAccount":
+      return <DeleteAccountScreen />;
     default:
       return sellerMode && state.user ? <SellerDashboard /> : <AccountHub />;
   }

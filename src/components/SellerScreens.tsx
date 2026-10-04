@@ -52,7 +52,7 @@ export function SellerDashboard() {
         <div className="grid gap-2 md:grid-cols-2">
           {state.sellerOrders.length === 0 && <p className="text-xs text-muted">No queries yet.</p>}
           {state.sellerOrders.map((order) => (
-            <div key={order.id} className="space-y-0.5 rounded-lg bg-surface p-3 text-xs ring-1 ring-black/5">
+            <div key={order.id} className="space-y-0.5 rounded-lg bg-surface p-3 text-xs ring-1 ring-black/10">
               <p className="text-sm font-medium">{order.buyerName || "Customer"}</p>
               {order.buyerEmail && <p>{order.buyerEmail}</p>}
               {order.buyerMobile && <p>{order.buyerMobile}</p>}
@@ -88,7 +88,7 @@ export function SellerDashboard() {
               type="button"
               key={chat.id}
               onClick={() => actions.openExistingChat(chat)}
-              className="rounded-lg bg-surface p-3 text-left ring-1 ring-black/5 hover:shadow-md"
+              className="rounded-lg bg-surface p-3 text-left ring-1 ring-black/10 hover:shadow-md"
             >
               <p className="text-sm font-medium">{chat.buyerName || "Customer"}</p>
               <p className="text-xs text-muted">{chat.productName || (chat.orderId ? "Order query" : "Chat")}</p>
@@ -147,7 +147,7 @@ export function SellerProductPage({ product }: { product: Product }) {
       <p className="text-xs text-muted">{[product.brand, product.category, product.color].filter(Boolean).join("  ·  ")}</p>
       <p className="text-[13px]">{product.description}</p>
       {product.variants.map((v) => (
-        <div key={v.id} className="space-y-1 rounded-lg bg-surface p-3 ring-1 ring-black/5">
+        <div key={v.id} className="space-y-1 rounded-lg bg-surface p-3 ring-1 ring-black/10">
           <p className="text-sm font-medium">{v.label}</p>
           <p className="text-base font-bold">{toInr(v.offerPrice)}</p>
           <DiscountLine variant={v} />
@@ -392,7 +392,7 @@ export function SellerListingForm() {
 
       <p className="text-[13px] font-medium">Range options</p>
       {ranges.map((r, i) => (
-        <div key={r.id} className="space-y-2 rounded-lg bg-surface p-3 ring-1 ring-black/5">
+        <div key={r.id} className="space-y-2 rounded-lg bg-surface p-3 ring-1 ring-black/10">
           <p className="text-xs font-medium">Range {i + 1}</p>
           <div className="grid gap-2 sm:grid-cols-3">
             {input(r.km, (v) => updateRange(i, { km: digits(v, 4) }), "Range (km)", "numeric")}

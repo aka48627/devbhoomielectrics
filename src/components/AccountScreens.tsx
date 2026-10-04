@@ -1,6 +1,8 @@
 "use client";
 
+import { allCities } from "@/lib/cities";
 import { isAdmin, toInr } from "@/lib/product";
+import { isPlaceholderName } from "@/lib/repo";
 import { useShop } from "@/lib/shop";
 import { HEAD_OFFICE } from "@/lib/types";
 import { useState, type ReactNode } from "react";
@@ -20,7 +22,7 @@ export function PageHeader({ title, onBack }: { title: string; onBack: () => voi
 
 function Action({ title, subtitle, onClick }: { title: string; subtitle: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="w-full rounded-2xl bg-surface p-4 text-left ring-1 ring-black/5 transition hover:shadow-md">
+    <button type="button" onClick={onClick} className="w-full rounded-2xl bg-surface p-4 text-left ring-1 ring-black/10 transition hover:shadow-md">
       <p className="font-semibold">{title}</p>
       <p className="text-sm text-muted">{subtitle}</p>
     </button>
@@ -31,10 +33,22 @@ function Page({ children }: { children: ReactNode }) {
   return <section className="mx-auto max-w-2xl space-y-3">{children}</section>;
 }
 
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-surface p-3 ring-1 ring-black/10">
+      <p className="text-lg font-semibold">{value}</p>
+      <p className="text-[11px] text-muted">{label}</p>
+    </div>
+  );
+}
+
+const memberSince = (millis: number) => new Date(millis).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+
 export function AccountHub() {
   const { state, actions } = useShop();
   const profile = state.profile;
   const roleLabel = [isAdmin(profile?.role) && "Admin", profile?.sellerMode && "Seller"].filter(Boolean).join(" · ") || "User";
+  const displayName = [profile?.name ?? "", state.user?.displayName ?? ""].find((n) => !isPlaceholderName(n))?.trim() ?? "";
 
   if (!state.user) {
     return (
@@ -58,13 +72,36 @@ export function AccountHub() {
         <h1 className="text-xl font-semibold">Account</h1>
         <p className="text-sm text-muted">Your profile, saved addresses, and showroom role.</p>
       </div>
-      <div className="space-y-1.5 rounded-3xl bg-primary p-5 text-on-primary">
-        <p className="text-2xl font-semibold">{profile?.name || "Rider"}</p>
-        <p className="text-sm opacity-85">{profile?.email}</p>
-        {profile?.mobile && <p className="text-sm opacity-85">{profile.mobile}</p>}
-        <span className="mt-1.5 inline-block rounded-full bg-white/15 px-2.5 py-1 text-xs">{roleLabel}</span>
+      {profile ? (
+        <div className="space-y-1.5 rounded-3xl bg-primary p-5 text-on-primary">
+          {displayName ? (
+            <p className="text-2xl font-semibold">{displayName}</p>
+          ) : (
+            <button type="button" className="text-2xl font-semibold underline" onClick={() => actions.openAccountPage("editProfile")}>
+              Add your name
+            </button>
+          )}
+          <p className="text-sm opacity-85">{profile.email || state.user.email}</p>
+          <p className="text-sm opacity-85">{profile.mobile || "No mobile number added"}</p>
+          {profile.city && (
+            <p className="flex items-center gap-1 text-sm opacity-85">
+              <PinIcon className="size-4" /> {profile.city}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2 pt-1.5">
+            <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs">{roleLabel}</span>
+            {profile.createdAt > 0 && <span className="text-xs opacity-75">Member since {memberSince(profile.createdAt)}</span>}
+          </div>
+        </div>
+      ) : (
+        <div className="h-40 animate-pulse rounded-3xl bg-primary/40" aria-label="Loading profile" />
+      )}
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <Stat label="Addresses" value={state.addresses.length} />
+        <Stat label="Wishlist" value={state.wishlist.length} />
+        <Stat label="Order queries" value={state.myOrders.length} />
       </div>
-      <Action title="Edit profile" subtitle="Name, email is fixed from sign-in, mobile can be updated" onClick={() => actions.openAccountPage("editProfile")} />
+      <Action title="Edit profile" subtitle="Update your name, mobile number and city" onClick={() => actions.openAccountPage("editProfile")} />
       <Action title="Saved addresses" subtitle="Home and delivery addresses" onClick={() => actions.openAccountPage("addresses")} />
       <Action
         title="Wishlist"
@@ -89,7 +126,7 @@ export function AccountHub() {
               type="button"
               key={chat.id}
               onClick={() => actions.openExistingChat(chat)}
-              className="w-full rounded-xl bg-surface p-3 text-left ring-1 ring-black/5 hover:shadow-md"
+              className="w-full rounded-xl bg-surface p-3 text-left ring-1 ring-black/10 hover:shadow-md"
             >
               <p className="text-[13px] font-medium">{chat.sellerName || "Seller"}</p>
               <p className="text-xs text-muted">{chat.productName || (chat.orderId ? "Order query" : "Chat")}</p>
@@ -102,7 +139,7 @@ export function AccountHub() {
         <>
           <h2 className="pt-1 text-sm font-semibold">Your order queries</h2>
           {state.myOrders.slice(0, 5).map((order) => (
-            <div key={order.id} className="space-y-1 rounded-xl bg-surface p-3 ring-1 ring-black/5">
+            <div key={order.id} className="space-y-1 rounded-xl bg-surface p-3 ring-1 ring-black/10">
               <p className="text-[13px] font-medium">
                 {order.lines.length} item(s) · {toInr(order.total)}
               </p>
@@ -133,34 +170,118 @@ export function AccountHub() {
       <button type="button" className="btn btn-outline w-full rounded-2xl" onClick={actions.signOut}>
         Sign out
       </button>
+      <button type="button" className="w-full py-2 text-sm text-danger hover:underline" onClick={() => actions.openAccountPage("deleteAccount")}>
+        Delete account
+      </button>
+    </Page>
+  );
+}
+
+export function DeleteAccountScreen() {
+  const { state, actions } = useShop();
+  const [password, setPassword] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const usesPassword = state.user?.providerData.some((p) => p.providerId === "password") ?? false;
+  return (
+    <Page>
+      <PageHeader title="Delete account" onBack={actions.closeAccountPage} />
+      <div className="space-y-2 rounded-2xl bg-surface p-4 text-[13px] ring-1 ring-black/10">
+        <p className="font-semibold text-danger">This permanently deletes your account. It can&apos;t be undone.</p>
+        <p>We will delete:</p>
+        <ul className="list-disc space-y-0.5 pl-5 text-muted">
+          <li>Your profile (name, email, mobile number, city) and sign-in account</li>
+          <li>Saved addresses, cart and wishlist</li>
+          <li>Your retail partner applications</li>
+          <li>Scooters you listed as a seller, including their photos</li>
+        </ul>
+        <p className="text-muted">
+          Order queries and chat messages you already sent stay visible to the seller you contacted, as they are part of their records.
+          To have these removed too, email {HEAD_OFFICE.email} after deleting your account.
+        </p>
+      </div>
+      {usesPassword ? (
+        <label className="block text-xs">
+          Enter your password to confirm
+          <input className="field mt-1" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </label>
+      ) : (
+        <p className="text-xs text-muted">You&apos;ll be asked to confirm with your Google account.</p>
+      )}
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />I understand my account and data will be permanently deleted.
+      </label>
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
+      <button
+        type="button"
+        className="btn w-full rounded-2xl bg-danger text-white disabled:opacity-50"
+        disabled={state.busy || !confirmed || (usesPassword && !password)}
+        onClick={() => actions.deleteAccount(password)}
+      >
+        {state.busy ? "Deleting…" : "Delete my account"}
+      </button>
     </Page>
   );
 }
 
 export function EditProfileScreen() {
   const { state, actions } = useShop();
-  const [name, setName] = useState(state.profile?.name ?? "");
-  const [mobile, setMobile] = useState(state.profile?.mobile ?? "");
+  const profile = state.profile;
   return (
     <Page>
       <PageHeader title="Edit profile" onBack={actions.closeAccountPage} />
+      {profile ? (
+        <EditProfileForm
+          key={`${profile.uid}|${profile.name}|${profile.mobile}|${profile.city}`}
+          initial={{ name: isPlaceholderName(profile.name) ? "" : profile.name, mobile: profile.mobile, city: profile.city }}
+          email={profile.email || state.user?.email || ""}
+        />
+      ) : (
+        <p className="text-sm text-muted">Loading your profile…</p>
+      )}
+    </Page>
+  );
+}
+
+function EditProfileForm({ initial, email }: { initial: { name: string; mobile: string; city: string }; email: string }) {
+  const { state, actions } = useShop();
+  const [form, setForm] = useState(initial);
+  const changed = form.name !== initial.name || form.mobile !== initial.mobile || form.city !== initial.city;
+  const cities = initial.city && !allCities.includes(initial.city) ? [initial.city, ...allCities] : allCities;
+  return (
+    <>
       <label className="block text-xs">
         Name
-        <input className="field mt-1" value={name} onChange={(e) => setName(e.target.value)} />
+        <input className="field mt-1" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </label>
       <label className="block text-xs">
-        Email
-        <input className="field mt-1 opacity-60" value={state.profile?.email ?? ""} disabled />
+        Email (from sign-in, can&apos;t be changed)
+        <input className="field mt-1 opacity-60" value={email} disabled />
       </label>
       <label className="block text-xs">
         Mobile (optional)
-        <input className="field mt-1" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} />
+        <input className="field mt-1" type="tel" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
+      </label>
+      <label className="block text-xs">
+        City
+        <select className="field mt-1" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })}>
+          <option value="">Not set</option>
+          {cities.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       </label>
       {state.error && <p className="text-sm text-danger">{state.error}</p>}
-      <button type="button" className="btn btn-primary w-full rounded-2xl" disabled={state.busy} onClick={() => actions.saveProfile(name, mobile)}>
+      <button
+        type="button"
+        className="btn btn-primary w-full rounded-2xl"
+        disabled={state.busy || !changed}
+        onClick={() => actions.saveProfile(form.name, form.mobile, form.city)}
+      >
         Save profile
       </button>
-    </Page>
+    </>
   );
 }
 
@@ -178,7 +299,7 @@ export function AddressesScreen() {
       <PageHeader title="Saved addresses" onBack={actions.closeAccountPage} />
       {state.addresses.length === 0 && <p className="text-sm text-muted">No saved addresses yet.</p>}
       {state.addresses.map((a) => (
-        <div key={a.id} className="flex items-start justify-between gap-3 rounded-xl bg-surface p-3 ring-1 ring-black/5">
+        <div key={a.id} className="flex items-start justify-between gap-3 rounded-xl bg-surface p-3 ring-1 ring-black/10">
           <div className="text-sm">
             <p className="font-medium">{a.label}</p>
             <p className="text-muted">
@@ -230,7 +351,7 @@ export function WishlistScreen() {
             role="button"
             tabIndex={0}
             onClick={() => live && actions.openProduct(live.id)}
-            className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface p-3 ring-1 ring-black/5"
+            className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface p-3 ring-1 ring-black/10"
           >
             <ProductThumb imageKey={item.imageKey} className="size-16 shrink-0 rounded-md" />
             <div className="min-w-0 flex-1">
@@ -309,7 +430,7 @@ export function HelpScreen() {
       <p className="text-[13px] text-muted">
         For product queries, use Enquire now on any scooter to chat with the seller. For partnership or showroom help, reach our head office.
       </p>
-      <div className="space-y-2 rounded-2xl bg-surface p-4 ring-1 ring-black/5">
+      <div className="space-y-2 rounded-2xl bg-surface p-4 ring-1 ring-black/10">
         <p className="text-sm font-semibold">Head office</p>
         <p className="font-medium">{HEAD_OFFICE.name}</p>
         <p className="flex items-start gap-1.5 text-[13px] text-muted">
@@ -333,7 +454,7 @@ export function AdminPartnersScreen() {
       <PageHeader title="Partner applications" onBack={actions.closeAccountPage} />
       {state.partnerApplications.length === 0 && <p className="text-xs text-muted">No applications yet.</p>}
       {state.partnerApplications.map((app) => (
-        <div key={app.id} className="space-y-0.5 rounded-xl bg-surface p-3.5 ring-1 ring-black/5">
+        <div key={app.id} className="space-y-0.5 rounded-xl bg-surface p-3.5 ring-1 ring-black/10">
           <p className="font-semibold">{app.name || "Applicant"}</p>
           {app.shopName && <p className="text-[13px]">{app.shopName}</p>}
           <p className="text-xs">{[app.mobile, app.email].filter(Boolean).join("  ·  ")}</p>

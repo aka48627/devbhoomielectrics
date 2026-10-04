@@ -55,7 +55,7 @@ export function ProductGridCard({ product, onOpen, wished, onWishlist }: CardPro
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => e.key === "Enter" && onOpen()}
-      className="cursor-pointer overflow-hidden rounded-lg bg-surface shadow-sm ring-1 ring-black/5 transition hover:shadow-md"
+      className="cursor-pointer overflow-hidden rounded-lg bg-surface shadow-sm ring-1 ring-black/10 transition hover:shadow-md"
     >
       <div className="relative">
         <ProductThumb imageKey={product.images[0] ?? ""} className="h-32 w-full sm:h-40" />
@@ -89,7 +89,7 @@ export function ProductListCard({ product, onOpen, wished, onWishlist }: CardPro
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => e.key === "Enter" && onOpen()}
-      className="flex cursor-pointer gap-3 rounded-xl bg-surface p-2 shadow-sm ring-1 ring-black/5 transition hover:shadow-md"
+      className="flex cursor-pointer gap-3 rounded-xl bg-surface p-2 shadow-sm ring-1 ring-black/10 transition hover:shadow-md"
     >
       <div className="relative shrink-0">
         <ProductThumb imageKey={product.images[0] ?? ""} className="size-32 rounded-lg" />

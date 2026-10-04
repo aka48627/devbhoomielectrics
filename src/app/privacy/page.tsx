@@ -135,14 +135,21 @@ export default function PrivacyPolicy() {
           trash and delete them permanently.
         </p>
         <p>
-          To delete your account and associated data, email us at{" "}
+          You can delete your account at any time from <strong className="text-foreground">Account → Delete account</strong> in the
+          app or website. This immediately deletes your sign-in account, profile, addresses, cart, wishlist, partner applications,
+          and any scooters and photos you listed as a seller. You can also email us at{" "}
           <a href={`mailto:${HEAD_OFFICE.email}?subject=Account%20deletion%20request`} className="text-primary hover:underline">
             {HEAD_OFFICE.email}
           </a>{" "}
-          from the email address on your account, with the subject &quot;Account deletion request&quot;. We will delete your account,
-          profile, addresses, cart, wishlist, and partner applications within 30 days. Order queries and chat messages already
-          delivered to sellers may be kept by those sellers for their records, and we may retain limited information where required
-          by law.
+          with the subject &quot;Account deletion request&quot; and we will do it within 30 days. Full steps are on our{" "}
+          <Link href="/delete-account" className="text-primary hover:underline">
+            account deletion page
+          </Link>
+          .
+        </p>
+        <p>
+          Order queries and chat messages already delivered to sellers stay in their records; on request we will remove or anonymise
+          them within 30 days, except limited information we must keep by law.
         </p>
       </Section>
 

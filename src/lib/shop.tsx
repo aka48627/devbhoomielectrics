@@ -2,8 +2,12 @@
 
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
   GoogleAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -32,7 +36,16 @@ import type {
 } from "./types";
 
 export type Tab = "home" | "trending" | "categories" | "account" | "cart";
-export type AccountPage = "hub" | "editProfile" | "addresses" | "sell" | "wishlist" | "partner" | "help" | "adminPartners";
+export type AccountPage =
+  | "hub"
+  | "editProfile"
+  | "addresses"
+  | "sell"
+  | "wishlist"
+  | "partner"
+  | "help"
+  | "adminPartners"
+  | "deleteAccount";
 
 export type ListingInput = {
   name: string;
@@ -127,6 +140,8 @@ export function friendly(error: unknown): string {
   const code = (error as { code?: string })?.code ?? "";
   const map: Record<string, string> = {
     "auth/invalid-credential": "Email/mobile or password is wrong.",
+    "auth/user-mismatch": "Confirm with the same Google account you signed in with.",
+    "auth/requires-recent-login": "Please confirm your sign-in again, then retry.",
     "auth/wrong-password": "Email/mobile or password is wrong.",
     "auth/user-not-found": "No account found. Create one first.",
     "auth/email-already-in-use": "An account already exists with this email. Log in instead.",
@@ -163,6 +178,7 @@ function useShopStore() {
     [set],
   );
   const chatUnsub = useRef<Unsubscribe | null>(null);
+  const deleting = useRef(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("city")?.trim();
@@ -210,19 +226,24 @@ function useShopStore() {
         uid,
         (profile) => {
           if (!profile) {
-            if (!user) return;
+            if (!user || deleting.current) return;
             const fallback: UserProfile = {
               uid,
-              name: user.displayName ?? "Rider",
+              name: user.displayName ?? "",
               email: user.email ?? "",
               mobile: "",
               role: "user",
               sellerMode: false,
               city: "",
+              createdAt: 0,
             };
             set({ profile: fallback });
             repo.ensureUser(uid, fallback.name, fallback.email, "").catch(quiet);
             return;
+          }
+          const authName = auth.currentUser?.displayName ?? "";
+          if (repo.isPlaceholderName(profile.name) && !repo.isPlaceholderName(authName)) {
+            repo.ensureUser(uid, authName, profile.email, "").catch(quiet);
           }
           const chosen = localStorage.getItem("city_chosen") === "1";
           set((s) => ({ profile, city: profile.city && !chosen ? profile.city : s.city }));
@@ -285,6 +306,7 @@ function useShopStore() {
           role: "user",
           sellerMode: false,
           city: "",
+          createdAt: 0,
         }
       );
     },
@@ -392,6 +414,38 @@ function useShopStore() {
           await repo.ensureUser(user.uid, user.displayName ?? "Rider", user.email, "");
         }),
 
+      deleteAccount: (password: string) => {
+        const user = auth.currentUser;
+        if (!user) return set({ authOpen: true, error: "Sign in to delete your account." });
+        const usesPassword = user.providerData.some((p) => p.providerId === "password");
+        if (usesPassword && !password) return set({ error: "Enter your password to confirm." });
+        const mobile = stateRef.current.profile?.mobile ?? "";
+        run(async () => {
+          if (usesPassword) {
+            await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email ?? "", password));
+          } else {
+            await reauthenticateWithPopup(user, new GoogleAuthProvider());
+          }
+          deleting.current = true;
+          try {
+            chatUnsub.current?.();
+            await repo.deleteAccountData(user.uid, mobile);
+            await deleteUser(user);
+          } finally {
+            deleting.current = false;
+          }
+          set({
+            tab: "home",
+            accountPage: "hub",
+            openProductId: null,
+            sellerShopId: null,
+            sellerProductId: null,
+            editingProductId: null,
+            message: "Your account and data have been deleted.",
+          });
+        });
+      },
+
       signOut: async () => {
         chatUnsub.current?.();
         await firebaseSignOut(auth);
@@ -445,18 +499,23 @@ function useShopStore() {
         repo.setQuantity(id, item, next).catch(fail);
       },
 
-      saveProfile: (name: string, mobile: string) => {
+      saveProfile: (name: string, mobile: string, city: string) => {
         const cleanName = name.trim();
         const cleanMobile = mobile.trim();
+        const cleanCity = city.trim();
         if (cleanName.length < 2) return set({ error: "Enter your name." });
         if (cleanMobile && normalizePhone(cleanMobile).length !== 10)
           return set({ error: "Enter a 10-digit mobile number, or leave it blank." });
         const profile = requireProfile("Sign in to edit your profile.");
         if (!profile) return;
         run(async () => {
-          await repo.updateProfile(profile.uid, profile.email, cleanName, cleanMobile, profile.mobile);
+          await repo.updateProfile(profile.uid, profile.email, cleanName, cleanMobile, profile.mobile, cleanCity);
           if (auth.currentUser) await updateAuthProfile(auth.currentUser, { displayName: cleanName });
-          set({ accountPage: "hub", message: "Profile saved." });
+          if (cleanCity) {
+            localStorage.setItem("city", cleanCity);
+            localStorage.setItem("city_chosen", "1");
+          }
+          set((s) => ({ accountPage: "hub", message: "Profile saved.", city: cleanCity || s.city }));
         });
       },
 

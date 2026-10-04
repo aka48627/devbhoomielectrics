@@ -101,7 +101,7 @@ export function CartScreen() {
           {state.cart.map((item) => (
             <CartRow key={item.lineId} item={item} onChange={(d) => actions.changeQuantity(item, d)} />
           ))}
-          <div className="space-y-2 rounded-lg bg-surface p-3 ring-1 ring-black/5">
+          <div className="space-y-2 rounded-lg bg-surface p-3 ring-1 ring-black/10">
             <div className="flex justify-between">
               <span className="text-[13px]">Offer total</span>
               <span className="text-base font-bold">{toInr(total)}</span>
@@ -131,7 +131,7 @@ export function CartScreen() {
 
 function CartRow({ item, onChange }: { item: CartItem; onChange: (delta: number) => void }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-surface p-2.5 ring-1 ring-black/5">
+    <div className="flex items-center gap-3 rounded-lg bg-surface p-2.5 ring-1 ring-black/10">
       <ProductThumb imageKey={item.imageKey} className="size-16 shrink-0 rounded-md" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-medium">{item.name}</p>

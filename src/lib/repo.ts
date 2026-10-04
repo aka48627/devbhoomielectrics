@@ -18,7 +18,7 @@ import {
   where,
   writeBatch,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { db, storage } from "./firebase";
 import { sampleProducts } from "./catalog";
 import { cartLineId, colorList, normalizePhone, primary } from "./product";
@@ -65,6 +65,7 @@ export function listenProfile(uid: string, onChange: (p: UserProfile | null) => 
         role: str(d.role, "user"),
         sellerMode: bool(d.sellerMode),
         city: str(d.city),
+        createdAt: millis(d.createdAt),
       });
     },
     onError,
@@ -135,6 +136,11 @@ export async function emailForIdentifier(identifier: string) {
   return email;
 }
 
+export const isPlaceholderName = (name: string) => {
+  const clean = name.trim();
+  return !clean || clean.toLowerCase() === "rider";
+};
+
 export async function ensureUser(uid: string, name: string, email: string, mobile: string) {
   const userRef = doc(db, "users", uid);
   const snap = await getDoc(userRef);
@@ -147,17 +153,22 @@ export async function ensureUser(uid: string, name: string, email: string, mobil
       sellerMode: false,
       createdAt: serverTimestamp(),
     });
-  } else if (!str(snap.data().name).trim() && name.trim()) {
-    await updateDoc(userRef, { name });
+  } else {
+    const existing = snap.data();
+    const updates: Record<string, string> = {};
+    if (isPlaceholderName(str(existing.name)) && !isPlaceholderName(name)) updates.name = name.trim();
+    if (!str(existing.email).trim() && email) updates.email = email;
+    if (!str(existing.mobile).trim() && mobile.trim()) updates.mobile = mobile.trim();
+    if (Object.keys(updates).length) await updateDoc(userRef, updates);
   }
   if (mobile.trim()) {
     await savePhone(uid, email || str(snap.data()?.email), mobile, snap.data()?.mobile);
   }
 }
 
-export async function updateProfile(uid: string, email: string, name: string, mobile: string, previousMobile: string) {
+export async function updateProfile(uid: string, email: string, name: string, mobile: string, previousMobile: string, city: string) {
   await ensureUser(uid, name, email, mobile);
-  await setDoc(doc(db, "users", uid), { name, email, mobile }, { merge: true });
+  await setDoc(doc(db, "users", uid), { name, email, mobile, city }, { merge: true });
   if (mobile.trim()) await savePhone(uid, email, mobile, previousMobile);
   else if (previousMobile.trim()) await clearPhone(uid, previousMobile);
 }
@@ -391,6 +402,34 @@ export async function sendMessage(chatId: string, senderId: string, text: string
 export async function hasMessages(chatId: string) {
   const snap = await getDocs(query(collection(db, "chats", chatId, "messages"), limit(1)));
   return !snap.empty;
+}
+
+async function deleteAll(docs: { ref: Parameters<typeof deleteDoc>[0] }[]) {
+  for (let i = 0; i < docs.length; i += 400) {
+    const batch = writeBatch(db);
+    docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+}
+
+export async function deleteAccountData(uid: string, mobile: string) {
+  const [addresses, wishlist, cart, applications, listings] = await Promise.all([
+    getDocs(collection(db, "users", uid, "addresses")),
+    getDocs(collection(db, "users", uid, "wishlist")),
+    getDocs(collection(db, "carts", uid, "items")),
+    getDocs(query(collection(db, "partnerApplications"), where("uid", "==", uid))),
+    getDocs(query(collection(db, "products"), where("sellerId", "==", uid))),
+  ]);
+  await Promise.all(
+    listings.docs.flatMap((d) =>
+      strList(d.data().images)
+        .filter((url) => url.startsWith("https://"))
+        .map((url) => deleteObject(ref(storage, url)).catch(() => undefined)),
+    ),
+  );
+  await deleteAll([...addresses.docs, ...wishlist.docs, ...cart.docs, ...applications.docs, ...listings.docs]);
+  if (mobile.trim()) await clearPhone(uid, mobile);
+  await deleteDoc(doc(db, "users", uid));
 }
 
 export async function submitPartnerApplication(app: Omit<PartnerApplication, "id" | "status" | "createdAt">) {
