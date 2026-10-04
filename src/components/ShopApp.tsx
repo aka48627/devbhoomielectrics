@@ -140,6 +140,9 @@ export default function ShopApp() {
             <button type="button" className="text-primary hover:underline" onClick={() => actions.openAccountPage("partner")}>
               Become a retail partner
             </button>
+            <a href="/privacy" className="text-primary hover:underline">
+              Privacy policy
+            </a>
           </div>
         </div>
       </footer>

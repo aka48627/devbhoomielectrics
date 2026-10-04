@@ -319,6 +319,9 @@ export function HelpScreen() {
           Open in Google Maps
         </a>
       </div>
+      <a href="/privacy" className="block text-sm text-primary hover:underline">
+        Privacy policy
+      </a>
     </Page>
   );
 }

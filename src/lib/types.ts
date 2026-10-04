@@ -154,4 +154,5 @@ export const HEAD_OFFICE = {
   name: "Devbhoomi Electrics",
   address: "Mohanpur, Prem Nagar, Dehradun, Uttarakhand 248007",
   mapUrl: "https://maps.app.goo.gl/Z8iRJdxqtRVr89ac8",
+  email: "aka48627@gmail.com",
 };

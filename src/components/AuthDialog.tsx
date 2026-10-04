@@ -103,6 +103,13 @@ export default function AuthDialog() {
         <button type="button" className="block w-full text-center text-sm text-primary" onClick={() => setSigningUp((v) => !v)}>
           {signingUp ? "Already have an account? Log in" : "New here? Create an account"}
         </button>
+        <p className="text-center text-xs text-muted">
+          By continuing you agree to our{" "}
+          <a href="/privacy" target="_blank" className="text-primary hover:underline">
+            Privacy policy
+          </a>
+          .
+        </p>
       </form>
     </div>
   );
