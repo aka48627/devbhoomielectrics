@@ -1,0 +1,30 @@
+# Firebase App Hosting settings for the Devbhoomi Electrics website.
+# https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  minInstances: 0
+  maxInstances: 4
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+# Firebase web config is public by design; access is enforced by Firestore and Storage rules.
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyCUVI9IBG-ykkkZdBkglKwkQ5dBlc2NZFU
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: devbhoomi-electrics.firebaseapp.com
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: devbhoomi-electrics
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: devbhoomi-electrics.firebasestorage.app
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "830673428944"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_TELEMETRY_DISABLED
+    value: "1"
+    availability: [BUILD, RUNTIME]

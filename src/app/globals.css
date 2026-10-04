@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3f6f1;
+  --foreground: #12211a;
+  --surface: #ffffff;
+  --surface-variant: #e4eee6;
+  --muted: #3d5346;
+  --primary: #0f6b3c;
+  --on-primary: #ffffff;
+  --primary-container: #d7f5e3;
+  --on-primary-container: #083526;
+  --saving: #1b8f3a;
+  --danger: #b42318;
+  --lime: #b6f27c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0c1a14;
+    --foreground: #e7f3eb;
+    --surface: #13241c;
+    --surface-variant: #24382c;
+    --muted: #c5d8cc;
+    --primary: #b6f27c;
+    --on-primary: #083526;
+    --primary-container: #145c38;
+    --on-primary-container: #d7f5e3;
+    --saving: #5fd17a;
+    --danger: #ffb4ab;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-variant: var(--surface-variant);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-saving: var(--saving);
+  --color-danger: var(--danger);
+  --color-lime: var(--lime);
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.field {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent);
+  background: var(--surface);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+}
+.field:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.btn-outline {
+  border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
+  color: var(--primary);
+  background: transparent;
+}
+.btn-outline:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.chip {
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip[data-on="true"] {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  border-color: transparent;
+  font-weight: 500;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
