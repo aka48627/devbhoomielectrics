@@ -4,6 +4,9 @@ import { availableIn, greetingName, sellerLabel, toInr } from "@/lib/product";
 import { useShop } from "@/lib/shop";
 import type { CartItem, Product } from "@/lib/types";
 import { useState } from "react";
+import { MyList, YourChats, YourOrderQueries } from "./AccountScreens";
+import { activeFilterCount, applyFilter, batteryOptions } from "@/lib/filters";
+import CatalogFilterBar from "./CatalogFilterBar";
 import CatalogGrid from "./CatalogGrid";
 import { BackIcon, MinusIcon, PlusIcon } from "./Icons";
 import ProductThumb from "./ProductThumb";
@@ -26,16 +29,20 @@ export function HomeScreen() {
   const { state, actions, inCity, wished } = useCatalogHelpers();
   const q = state.catalogQuery.trim();
   const featured = inCity.filter((p) => p.featured);
-  const visible = q ? inCity.filter((p) => matches(p, q)) : featured.length ? featured : inCity;
+  const filtering = activeFilterCount(state.catalogFilter) > 0;
+  const visible = applyFilter(q ? inCity.filter((p) => matches(p, q)) : featured.length ? featured : inCity, state.catalogFilter);
   return (
     <CatalogGrid
       title={`Hello, ${greetingName(state.profile?.name)}`}
       subtitle={q ? `${visible.length} result${visible.length === 1 ? "" : "s"} in ${state.city}` : `Featured scooters in ${state.city}`}
       products={visible}
-      emptyText={q ? `Nothing matches "${q}" in ${state.city}.` : `No scooters listed in ${state.city} yet.`}
+      emptyText={
+        filtering ? "No scooters match these filters." : q ? `Nothing matches "${q}" in ${state.city}.` : `No scooters listed in ${state.city} yet.`
+      }
       onOpen={actions.openProduct}
       onWishlist={actions.toggleWishlist}
       wished={wished}
+      toolbar={<CatalogFilterBar filter={state.catalogFilter} batteries={batteryOptions(inCity)} onChange={actions.setCatalogFilter} />}
     />
   );
 }
@@ -47,10 +54,12 @@ export function TrendingScreen() {
     <CatalogGrid
       title="Trending"
       subtitle={`Scooters riders are asking about in ${state.city}`}
-      products={trending.length ? trending : inCity}
+      products={applyFilter(trending.length ? trending : inCity, state.catalogFilter)}
+      emptyText={activeFilterCount(state.catalogFilter) > 0 ? "No scooters match these filters." : undefined}
       onOpen={actions.openProduct}
       onWishlist={actions.toggleWishlist}
       wished={wished}
+      toolbar={<CatalogFilterBar filter={state.catalogFilter} batteries={batteryOptions(inCity)} onChange={actions.setCatalogFilter} />}
     />
   );
 }
@@ -123,6 +132,13 @@ export function CartScreen() {
               Submit order query
             </button>
           </div>
+        </>
+      )}
+      {state.user && (
+        <>
+          <YourOrderQueries />
+          <YourChats />
+          <MyList />
         </>
       )}
     </section>

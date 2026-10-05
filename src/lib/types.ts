@@ -99,7 +99,17 @@ export type CartItem = {
   qty: number;
 };
 
-export type ChatMessage = { id: string; senderId: string; text: string; createdAt: number };
+export type ChatMessage = {
+  id: string;
+  senderId: string;
+  text: string;
+  createdAt: number;
+  imageUrl?: string;
+  replyToId?: string;
+  replyText?: string;
+  replySenderId?: string;
+  deleted?: boolean;
+};
 
 export type OrderChat = {
   id: string;
@@ -156,4 +166,6 @@ export const HEAD_OFFICE = {
   address: "Mohanpur, Prem Nagar, Dehradun, Uttarakhand 248007",
   mapUrl: "https://maps.app.goo.gl/Z8iRJdxqtRVr89ac8",
   email: "support@devbhoomielectrics.com",
+  phone: "+91 97622 73942",
+  phoneHref: "tel:+919762273942",
 };

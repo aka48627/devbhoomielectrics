@@ -188,6 +188,11 @@ export default function PrivacyPolicy() {
             {HEAD_OFFICE.email}
           </a>
           <br />
+          Phone:{" "}
+          <a href={HEAD_OFFICE.phoneHref} className="text-primary hover:underline">
+            {HEAD_OFFICE.phone}
+          </a>
+          <br />
           <a href={HEAD_OFFICE.mapUrl} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
             View on Google Maps
           </a>

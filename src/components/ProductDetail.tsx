@@ -1,10 +1,11 @@
 "use client";
 
+import { rangeLabel } from "@/lib/filters";
 import { colorList, formatDate, hasRating, sellerLabel, toInr, variantById } from "@/lib/product";
 import { useShop } from "@/lib/shop";
 import type { Product } from "@/lib/types";
 import { useEffect, useState } from "react";
-import { BackIcon, ChatIcon, ChevronLeft, ChevronRight, CloseIcon, HeartIcon, StarIcon } from "./Icons";
+import { BackIcon, ChatIcon, ChevronLeft, ChevronRight, CloseIcon, HeartIcon, StarIcon, VerifiedIcon } from "./Icons";
 import { MonthlySaving } from "./ProductCards";
 import ProductThumb from "./ProductThumb";
 
@@ -68,8 +69,9 @@ export default function ProductDetail({ product }: { product: Product }) {
               <StarIcon className="size-3.5 text-saving" /> {product.rating.toFixed(1)} · {product.reviewCount} ratings
             </p>
           )}
-          <button type="button" onClick={() => actions.openSellerShop(product.sellerId || "showroom")} className="text-sm text-primary hover:underline">
+          <button type="button" onClick={() => actions.openSellerShop(product.sellerId || "showroom")} className="flex items-center gap-1 text-left text-sm text-primary hover:underline">
             Sold by {sellerLabel(product)}
+            <VerifiedIcon className="size-4 shrink-0 text-[#1a73e8]" />
           </button>
           {product.listedAt > 0 && <p className="text-xs text-muted">Posted {formatDate(product.listedAt)}</p>}
           <p className="text-[13px] leading-relaxed text-muted">{product.description}</p>
@@ -106,7 +108,12 @@ export default function ProductDetail({ product }: { product: Product }) {
           <hr className="border-surface-variant" />
           <h2 className="text-sm font-medium">Specifications</h2>
           <dl className="space-y-1">
-            {product.specifications.map((s) => (
+            {[
+              ...(rangeLabel(product) && !product.specifications.some((s) => s.label.toLowerCase() === "range")
+                ? [{ label: "Range", value: rangeLabel(product) }]
+                : []),
+              ...product.specifications,
+            ].map((s) => (
               <div key={s.label} className="grid grid-cols-2 gap-2 text-xs">
                 <dt className="text-muted">{s.label}</dt>
                 <dd>{s.value}</dd>

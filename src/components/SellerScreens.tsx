@@ -5,12 +5,12 @@ import { colorList, formatWhen, isAdmin, toInr } from "@/lib/product";
 import { useShop } from "@/lib/shop";
 import { listingCategories, scooterColors, type Product, type ProductVariant } from "@/lib/types";
 import { useEffect, useMemo, useState } from "react";
-import { PageHeader } from "./AccountScreens";
+import { ChatRow, PageHeader } from "./AccountScreens";
 import { MinusIcon, PlusIcon, TrashIcon } from "./Icons";
 import { DiscountLine, ProductGridCard } from "./ProductCards";
 import ProductThumb from "./ProductThumb";
 
-type Section = "products" | "orders" | "chats" | "trash";
+type Section = "products" | "enquiries" | "orders" | "chats" | "trash";
 
 export function SellerDashboard() {
   const { state, actions } = useShop();
@@ -18,10 +18,13 @@ export function SellerDashboard() {
   const [section, setSection] = useState<Section>("products");
   const mine = state.products.filter((p) => p.sellerId === profile?.uid && !p.trashed);
   const trash = state.products.filter((p) => p.sellerId === profile?.uid && p.trashed);
+  const enquiries = state.sellerChats.filter((c) => c.productId && !c.orderId);
+  const orderChats = state.sellerChats.filter((c) => !(c.productId && !c.orderId));
   const tabs: [Section, string][] = [
     ["products", `Products ${mine.length}`],
+    ["enquiries", `Enquiries ${enquiries.length}`],
     ["orders", `Orders ${state.sellerOrders.length}`],
-    ["chats", `Chats ${state.sellerChats.length}`],
+    ["chats", `Chats ${orderChats.length}`],
     ["trash", `Trash ${trash.length}`],
   ];
   return (
@@ -80,10 +83,21 @@ export function SellerDashboard() {
         </div>
       )}
 
+      {section === "enquiries" && (
+        <div className="grid gap-2 md:grid-cols-2">
+          {enquiries.length === 0 && (
+            <p className="text-xs text-muted">No enquiries yet. When a customer taps Enquire now on your product, it appears here.</p>
+          )}
+          {enquiries.map((chat) => (
+            <ChatRow key={chat.id} chat={chat} name={chat.buyerName || "Customer"} />
+          ))}
+        </div>
+      )}
+
       {section === "chats" && (
         <div className="grid gap-2 md:grid-cols-2">
-          {state.sellerChats.length === 0 && <p className="text-xs text-muted">No chats yet. Product enquiries and order chats appear here.</p>}
-          {state.sellerChats.map((chat) => (
+          {orderChats.length === 0 && <p className="text-xs text-muted">No order chats yet.</p>}
+          {orderChats.map((chat) => (
             <button
               type="button"
               key={chat.id}

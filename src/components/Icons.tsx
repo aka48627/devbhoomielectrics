@@ -117,6 +117,49 @@ export const HeartIcon = ({ className, filled }: P & { filled?: boolean }) => (
     <path d="M12 21s-7.5-4.6-9.5-9.3C1 7.9 3.6 4 7.5 4c2 0 3.4 1 4.5 2.5C13.1 5 14.5 4 16.5 4 20.4 4 23 7.9 21.5 11.7 19.5 16.4 12 21 12 21z" />
   </svg>
 );
+export const PhoneIcon = ({ className }: P) => (
+  <svg {...base(className)}>
+    <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+  </svg>
+);
+export const ReplyIcon = ({ className }: P) => (
+  <svg {...base(className)}>
+    <path d="M9 14 4 9l5-5" />
+    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+  </svg>
+);
+export const CopyIcon = ({ className }: P) => (
+  <svg {...base(className)}>
+    <rect x="9" y="9" width="13" height="13" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+export const CheckIcon = ({ className }: P) => (
+  <svg {...base(className)}>
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+export const AttachIcon = ({ className }: P) => (
+  <svg {...base(className)}>
+    <path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" />
+  </svg>
+);
+export const MicIcon = ({ className }: P) => (
+  <svg {...base(className)}>
+    <rect x="9" y="2" width="6" height="12" rx="3" />
+    <path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8" />
+  </svg>
+);
+export const SendIcon = ({ className }: P) => (
+  <svg className={className ?? "size-5"} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z" />
+  </svg>
+);
+export const VerifiedIcon = ({ className }: P) => (
+  <svg className={className ?? "size-4"} viewBox="0 0 24 24" fill="currentColor" aria-label="Verified seller">
+    <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.4 14.2-4-4 1.4-1.4 2.6 2.6 5.6-5.6 1.4 1.4z" />
+  </svg>
+);
 export const StarIcon = ({ className }: P) => (
   <svg className={className ?? "size-3"} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
     <path d="m12 2 3 6.9 7.5.6-5.7 5 1.7 7.4L12 18l-6.5 3.9 1.7-7.4-5.7-5 7.5-.6z" />

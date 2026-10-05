@@ -136,6 +136,14 @@ export async function emailForIdentifier(identifier: string) {
   return email;
 }
 
+export async function syncSellerName(productIds: string[], name: string) {
+  for (let i = 0; i < productIds.length; i += 400) {
+    const batch = writeBatch(db);
+    productIds.slice(i, i + 400).forEach((id) => batch.update(doc(db, "products", id), { sellerName: name }));
+    await batch.commit();
+  }
+}
+
 export const isPlaceholderName = (name: string) => {
   const clean = name.trim();
   return !clean || clean.toLowerCase() === "rider";
@@ -378,24 +386,55 @@ export function listenMessages(chatId: string, onChange: (m: ChatMessage[]) => v
     (snap) =>
       onChange(
         snap.docs
-          .filter((d) => typeof d.data().text === "string")
           .map((d) => ({
             id: d.id,
             senderId: str(d.data().senderId),
             text: str(d.data().text),
             createdAt: num(d.data().createdAt),
+            imageUrl: str(d.data().imageUrl),
+            replyToId: str(d.data().replyToId),
+            replyText: str(d.data().replyText),
+            replySenderId: str(d.data().replySenderId),
+            deleted: bool(d.data().deleted),
           }))
+          .filter((m) => m.deleted || m.text.trim() || m.imageUrl)
           .sort((a, b) => a.createdAt - b.createdAt),
       ),
     onError,
   );
 }
 
-export async function sendMessage(chatId: string, senderId: string, text: string) {
+export async function uploadChatPhoto(chatId: string, uid: string, blob: Blob) {
+  const target = ref(storage, `chats/${chatId}/${uid}/${Date.now()}.jpg`);
+  await uploadBytes(target, blob, { contentType: "image/jpeg" });
+  return getDownloadURL(target);
+}
+
+export const replySnippet = (m: ChatMessage) => (m.text.trim() || (m.imageUrl ? "Photo" : "")).slice(0, 200);
+
+export async function deleteMessages(chatId: string, messages: ChatMessage[]) {
+  if (!messages.length) return;
+  const batch = writeBatch(db);
+  messages.forEach((m) => batch.update(doc(db, "chats", chatId, "messages", m.id), { deleted: true, text: "", imageUrl: "" }));
+  await batch.commit();
+  await Promise.all(
+    messages
+      .filter((m) => m.imageUrl?.startsWith("https://"))
+      .map((m) => deleteObject(ref(storage, m.imageUrl)).catch(() => undefined)),
+  );
+}
+
+export async function sendMessage(chatId: string, senderId: string, text: string, imageUrl = "", replyTo?: ChatMessage | null) {
   const clean = text.trim();
-  if (!clean) return;
+  if (!clean && !imageUrl) return;
   const message = doc(collection(db, "chats", chatId, "messages"));
-  await setDoc(message, { senderId, text: clean, createdAt: Date.now() });
+  await setDoc(message, {
+    senderId,
+    text: clean,
+    createdAt: Date.now(),
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(replyTo ? { replyToId: replyTo.id, replyText: replySnippet(replyTo), replySenderId: replyTo.senderId } : {}),
+  });
   await setDoc(doc(db, "chats", chatId), { updatedAt: Date.now() }, { merge: true });
 }
 

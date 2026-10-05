@@ -1,10 +1,10 @@
 "use client";
 
 import { allCities } from "@/lib/cities";
-import { isAdmin, toInr } from "@/lib/product";
+import { canSwitchToSeller, isAdmin, toInr } from "@/lib/product";
 import { isPlaceholderName } from "@/lib/repo";
 import { useShop } from "@/lib/shop";
-import { HEAD_OFFICE } from "@/lib/types";
+import { HEAD_OFFICE, type OrderChat } from "@/lib/types";
 import { useState, type ReactNode } from "react";
 import { BackIcon, HeartIcon, PinIcon } from "./Icons";
 import ProductThumb from "./ProductThumb";
@@ -39,6 +39,111 @@ function Stat({ label, value }: { label: string; value: number }) {
       <p className="text-lg font-semibold">{value}</p>
       <p className="text-[11px] text-muted">{label}</p>
     </div>
+  );
+}
+
+export function YourChats({ limit = 8 }: { limit?: number }) {
+  const { state } = useShop();
+  if (!state.buyerChats.length) return null;
+  return (
+    <>
+      <h2 className="pt-1 text-sm font-semibold">Your chats</h2>
+      {state.buyerChats.slice(0, limit).map((chat) => (
+        <ChatRow key={chat.id} chat={chat} name={chat.sellerName || "Seller"} />
+      ))}
+    </>
+  );
+}
+
+export function YourOrderQueries({ limit = 5 }: { limit?: number }) {
+  const { state, actions } = useShop();
+  if (!state.myOrders.length) return null;
+  return (
+    <>
+      <h2 className="pt-1 text-sm font-semibold">Your order queries</h2>
+      {state.myOrders.slice(0, limit).map((order) => (
+        <div key={order.id} className="space-y-2 rounded-xl bg-surface p-3 ring-1 ring-black/10">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[13px] font-medium">
+              {order.lines.length} item(s) · {toInr(order.total)}
+            </p>
+            {order.createdAt > 0 && (
+              <p className="text-[11px] text-muted">
+                {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto">
+            {order.lines.map((line) => (
+              <ProductThumb key={`${line.productId}-${line.variantLabel}`} imageKey={line.imageKey} className="size-10 shrink-0 rounded-md" />
+            ))}
+          </div>
+          {Array.from(new Set(order.sellerIds)).map((sellerId) => {
+            const listed = state.products.find((p) => p.sellerId === sellerId);
+            const label = listed?.sellerName || (sellerId === "showroom" ? "Devbhoomi Electrics" : "Seller");
+            return (
+              <button type="button" key={sellerId} className="block text-xs text-primary hover:underline" onClick={() => actions.openOrderChat(order, sellerId)}>
+                Chat with {label}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function MyList() {
+  const { state, actions } = useShop();
+  if (!state.wishlist.length) return null;
+  return (
+    <>
+      <div className="flex items-baseline justify-between pt-1">
+        <h2 className="text-sm font-semibold">My list</h2>
+        <button type="button" className="text-xs text-primary hover:underline" onClick={() => actions.openAccountPage("wishlist")}>
+          View all
+        </button>
+      </div>
+      <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+        {state.wishlist.map((item) => {
+          const live = state.products.find((p) => p.id === item.productId && !p.trashed);
+          return (
+            <button
+              type="button"
+              key={item.productId}
+              disabled={!live}
+              onClick={() => live && actions.openProduct(live.id)}
+              className="w-36 shrink-0 overflow-hidden rounded-xl bg-surface text-left ring-1 ring-black/10 enabled:hover:shadow-md"
+            >
+              <ProductThumb imageKey={item.imageKey} className="h-24 w-full" />
+              <div className="space-y-0.5 p-2">
+                <p className="truncate text-xs font-medium">{item.name}</p>
+                <p className="text-xs font-bold">{toInr(item.offerPrice)}</p>
+                {!live && <p className="text-[10px] text-danger">No longer listed</p>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+export function ChatRow({ chat, name }: { chat: OrderChat; name: string }) {
+  const { state, actions } = useShop();
+  const product = chat.productId ? state.products.find((p) => p.id === chat.productId) : undefined;
+  return (
+    <button
+      type="button"
+      onClick={() => actions.openExistingChat(chat)}
+      className="flex w-full items-center gap-3 rounded-xl bg-surface p-3 text-left ring-1 ring-black/10 hover:shadow-md"
+    >
+      <ProductThumb imageKey={product?.images[0] ?? "forest"} className="size-11 shrink-0 rounded-lg" />
+      <div className="min-w-0">
+        <p className="truncate text-[13px] font-medium">{name}</p>
+        <p className="truncate text-xs text-muted">{chat.productName || (chat.orderId ? "Order query" : "Chat")}</p>
+      </div>
+    </button>
   );
 }
 
@@ -118,50 +223,25 @@ export function AccountHub() {
         />
       )}
 
-      {state.buyerChats.length > 0 && (
+      {isAdmin(profile?.role) && state.sellerChats.length > 0 && (
         <>
-          <h2 className="pt-1 text-sm font-semibold">Your chats</h2>
-          {state.buyerChats.slice(0, 8).map((chat) => (
-            <button
-              type="button"
-              key={chat.id}
-              onClick={() => actions.openExistingChat(chat)}
-              className="w-full rounded-xl bg-surface p-3 text-left ring-1 ring-black/10 hover:shadow-md"
-            >
-              <p className="text-[13px] font-medium">{chat.sellerName || "Seller"}</p>
-              <p className="text-xs text-muted">{chat.productName || (chat.orderId ? "Order query" : "Chat")}</p>
-            </button>
+          <h2 className="pt-1 text-sm font-semibold">Customer chats</h2>
+          {state.sellerChats.slice(0, 12).map((chat) => (
+            <ChatRow key={chat.id} chat={chat} name={chat.buyerName || "Customer"} />
           ))}
         </>
       )}
 
-      {state.myOrders.length > 0 && (
-        <>
-          <h2 className="pt-1 text-sm font-semibold">Your order queries</h2>
-          {state.myOrders.slice(0, 5).map((order) => (
-            <div key={order.id} className="space-y-1 rounded-xl bg-surface p-3 ring-1 ring-black/10">
-              <p className="text-[13px] font-medium">
-                {order.lines.length} item(s) · {toInr(order.total)}
-              </p>
-              {Array.from(new Set(order.sellerIds)).map((sellerId) => {
-                const listed = state.products.find((p) => p.sellerId === sellerId);
-                const label = listed?.sellerName || (sellerId === "showroom" ? "Devbhoomi Electrics" : "Seller");
-                return (
-                  <button type="button" key={sellerId} className="block text-xs text-primary hover:underline" onClick={() => actions.openOrderChat(order, sellerId)}>
-                    Chat with {label}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </>
-      )}
+      <YourChats />
+      <YourOrderQueries />
 
-      <Action
-        title={profile?.sellerMode ? "Switch to customer" : "Switch to seller"}
-        subtitle={profile?.sellerMode ? "Seller tools stay available until you switch back." : "List scooters with price, discount, and range options."}
-        onClick={() => actions.setSellerMode(!profile?.sellerMode)}
-      />
+      {canSwitchToSeller(profile, state.products) && (
+        <Action
+          title={profile?.sellerMode ? "Switch to customer" : "Switch to seller"}
+          subtitle={profile?.sellerMode ? "Seller tools stay available until you switch back." : "List scooters with price, discount, and range options."}
+          onClick={() => actions.setSellerMode(!profile?.sellerMode)}
+        />
+      )}
       {isAdmin(profile?.role) && (
         <button type="button" className="btn btn-primary w-full rounded-2xl" disabled={state.busy} onClick={actions.publishCatalog}>
           {state.catalogLive ? "Update showroom catalog" : "Publish showroom catalog"}
@@ -436,9 +516,26 @@ export function HelpScreen() {
         <p className="flex items-start gap-1.5 text-[13px] text-muted">
           <PinIcon className="mt-0.5 size-4 shrink-0" /> {HEAD_OFFICE.address}
         </p>
-        <a href={HEAD_OFFICE.mapUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline">
-          Open in Google Maps
-        </a>
+        <p className="text-[13px]">
+          Phone:{" "}
+          <a href={HEAD_OFFICE.phoneHref} className="text-primary hover:underline">
+            {HEAD_OFFICE.phone}
+          </a>
+        </p>
+        <p className="text-[13px]">
+          Email:{" "}
+          <a href={`mailto:${HEAD_OFFICE.email}`} className="text-primary hover:underline">
+            {HEAD_OFFICE.email}
+          </a>
+        </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <a href={HEAD_OFFICE.phoneHref} className="btn btn-primary">
+            Call us
+          </a>
+          <a href={HEAD_OFFICE.mapUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline">
+            Open in Google Maps
+          </a>
+        </div>
       </div>
       <a href="/privacy" className="block text-sm text-primary hover:underline">
         Privacy policy

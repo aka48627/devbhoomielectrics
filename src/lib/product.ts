@@ -1,5 +1,5 @@
 import { coverageFor } from "./cities";
-import type { Product, ProductVariant } from "./types";
+import type { Product, ProductVariant, UserProfile } from "./types";
 
 export const savings = (v: ProductVariant) => Math.max(0, v.mrp - v.offerPrice);
 
@@ -14,9 +14,8 @@ export const variantById = (p: Product, id?: string | null) => p.variants.find((
 export const hasRating = (p: Product) => p.rating > 0 && p.reviewCount > 0;
 
 export const sellerLabel = (p: Product) => {
-  if (p.sellerName.trim()) return p.sellerName;
-  if (p.sellerId === "showroom" || !p.sellerId) return "Devbhoomi Electrics";
-  return "Seller";
+  if (p.sellerName.trim()) return `Devbhoomi Electrics (${p.sellerName.trim()})`;
+  return "Devbhoomi Electrics";
 };
 
 export const colorList = (p: Product) => (p.colors.length ? p.colors : [p.color].filter((c) => c.trim()));
@@ -61,6 +60,9 @@ export function cardMeta(p: Product) {
 export const greetingName = (name?: string) => (name ?? "").split(" ")[0] || "Rider";
 
 export const isAdmin = (role?: string) => (role ?? "").toLowerCase() === "admin";
+
+export const canSwitchToSeller = (profile: UserProfile | null | undefined, products: Product[]) =>
+  !!profile && (isAdmin(profile.role) || profile.sellerMode || products.some((p) => p.sellerId === profile.uid));
 
 export function normalizePhone(raw: string) {
   const d = raw.replace(/\D/g, "");

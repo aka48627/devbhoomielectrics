@@ -130,6 +130,15 @@ export default function ShopApp() {
           <div>
             <p className="font-semibold">{HEAD_OFFICE.name}</p>
             <p className="text-muted">{HEAD_OFFICE.address}</p>
+            <p className="text-muted">
+              <a href={HEAD_OFFICE.phoneHref} className="hover:underline">
+                {HEAD_OFFICE.phone}
+              </a>
+              {"  ·  "}
+              <a href={`mailto:${HEAD_OFFICE.email}`} className="hover:underline">
+                {HEAD_OFFICE.email}
+              </a>
+            </p>
           </div>
           <div className="flex gap-4">
             <a href={HEAD_OFFICE.mapUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">

@@ -15,7 +15,7 @@ type CardProps = {
 
 export function MonthlySaving({ product, variant, className = "text-xs" }: { product: Product; variant?: ProductVariant; className?: string }) {
   const monthly = petrolSaving(product, variant ?? primary(product), DEFAULT_DAILY_KM)[1];
-  return <p className={`${className} font-bold text-saving`}>{toInr(monthly)}/mo vs petrol</p>;
+  return <p className={`${className} font-bold text-saving`}>Saves {toInr(monthly)} petrol per month</p>;
 }
 
 export function DiscountLine({ variant }: { variant: ProductVariant }) {

@@ -26,7 +26,7 @@ export default function SavingsCalculator({ product }: { product: Product }) {
         />
       </label>
       <p className="text-[13px] font-medium">Daily saving {toInr(daily)}</p>
-      <p className="text-base font-bold text-saving">{toInr(monthly)}/mo vs petrol</p>
+      <p className="text-base font-bold text-saving">Saves {toInr(monthly)} petrol per month</p>
     </div>
   );
 }

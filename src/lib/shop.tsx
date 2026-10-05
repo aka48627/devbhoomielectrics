@@ -18,8 +18,9 @@ import type { Unsubscribe } from "firebase/firestore";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sampleProducts } from "./catalog";
 import { auth } from "./firebase";
+import { DEFAULT_FILTER, type CatalogFilter } from "./filters";
 import { compressPhoto } from "./photos";
-import { cartLineId, isAdmin, normalizePhone, primary, sellerLabel } from "./product";
+import { canSwitchToSeller, cartLineId, isAdmin, normalizePhone, primary, sellerLabel } from "./product";
 import * as repo from "./repo";
 import type {
   Address,
@@ -99,6 +100,7 @@ type State = {
   category: string | null;
   city: string;
   catalogQuery: string;
+  catalogFilter: CatalogFilter;
   authOpen: boolean;
   busy: boolean;
   error: string | null;
@@ -130,6 +132,7 @@ const initial: State = {
   category: null,
   city: "Dehradun",
   catalogQuery: "",
+  catalogFilter: DEFAULT_FILTER,
   authOpen: false,
   busy: false,
   error: null,
@@ -259,9 +262,19 @@ function useShopStore() {
     return () => stops.forEach((stop) => stop());
   }, [uid, set, quiet]);
 
-  const sellerMode = state.profile?.sellerMode === true;
+  const sellerName = state.profile?.name.trim() ?? "";
+  const staleListings = state.catalogLive && uid && !repo.isPlaceholderName(sellerName)
+    ? state.products.filter((p) => p.sellerId === uid && p.sellerName !== sellerName).map((p) => p.id).join(",")
+    : "";
   useEffect(() => {
-    if (!uid || !sellerMode) {
+    if (staleListings) repo.syncSellerName(staleListings.split(","), sellerName).catch(quiet);
+  }, [staleListings, sellerName, quiet]);
+
+  const sellerMode = state.profile?.sellerMode === true;
+  const admin = isAdmin(state.profile?.role);
+  const handlesChats = sellerMode || admin;
+  useEffect(() => {
+    if (!uid || !handlesChats) {
       set({ sellerOrders: [], sellerChats: [] });
       return;
     }
@@ -279,9 +292,8 @@ function useShopStore() {
       repo.listenChats("sellerId", "showroom", (c) => ((chats.showroom = c), mergeChats()), quiet),
     ];
     return () => stops.forEach((stop) => stop());
-  }, [uid, sellerMode, set, quiet]);
+  }, [uid, handlesChats, set, quiet]);
 
-  const admin = isAdmin(state.profile?.role);
   useEffect(() => {
     if (!admin) {
       set({ partnerApplications: [] });
@@ -349,6 +361,7 @@ function useShopStore() {
     () => ({
       setTab: (tab: Tab) => set({ tab, error: null, openProductId: null, sellerShopId: null }),
       setQuery: (catalogQuery: string) => set({ catalogQuery }),
+      setCatalogFilter: (catalogFilter: CatalogFilter) => set({ catalogFilter }),
       selectCategory: (category: string | null) => set({ category }),
       dismissError: () => set({ error: null }),
       consumeMessage: () => set({ message: null }),
@@ -546,6 +559,8 @@ function useShopStore() {
       setSellerMode: (enabled: boolean) => {
         const profile = requireProfile("Sign in, then switch to seller.");
         if (!profile) return;
+        if (enabled && !canSwitchToSeller(profile, stateRef.current.products))
+          return set({ error: "Selling on Devbhoomi Electrics isn't open yet." });
         run(async () => {
           await repo.setSellerMode(profile, enabled);
           set({ accountPage: "hub", sellerProductId: null, editingProductId: null });
@@ -752,18 +767,74 @@ function useShopStore() {
         set({ openChat: null, chatMessages: [] });
       },
 
-      sendChat: (text: string) => {
+      openChatProduct: (productId: string) => {
+        chatUnsub.current?.();
+        chatUnsub.current = null;
+        set({ openChat: null, chatMessages: [], openProductId: productId, sellerShopId: null, error: null });
+        window.scrollTo({ top: 0 });
+      },
+
+      deleteChatMessages: (ids: string[]) => {
+        const s = stateRef.current;
+        const chat = s.openChat;
+        const sender = s.user?.uid;
+        if (!chat || !sender) return;
+        const targets = s.chatMessages.filter(
+          (m) => ids.includes(m.id) && m.senderId === sender && !m.deleted && !m.id.startsWith("local-"),
+        );
+        if (!targets.length) return;
+        const targetIds = new Set(targets.map((m) => m.id));
+        set((st) => ({
+          chatMessages: st.chatMessages.map((m) => (targetIds.has(m.id) ? { ...m, deleted: true, text: "", imageUrl: "" } : m)),
+        }));
+        repo.deleteMessages(chat.id, targets).catch((e) => set({ error: friendly(e) }));
+      },
+
+      sendChat: (text: string, replyTo?: ChatMessage | null) => {
         const s = stateRef.current;
         const chat = s.openChat;
         const sender = s.user?.uid;
         const clean = text.trim();
         if (!chat || !sender || !clean) return;
-        const local: ChatMessage = { id: `local-${Date.now()}`, senderId: sender, text: clean, createdAt: Date.now() };
+        const local: ChatMessage = {
+          id: `local-${Date.now()}`,
+          senderId: sender,
+          text: clean,
+          createdAt: Date.now(),
+          ...(replyTo ? { replyToId: replyTo.id, replyText: repo.replySnippet(replyTo), replySenderId: replyTo.senderId } : {}),
+        };
         set((st) => ({ chatMessages: [...st.chatMessages, local] }));
         (async () => {
           try {
             await repo.ensureChat(chat);
-            await repo.sendMessage(chat.id, sender, clean);
+            await repo.sendMessage(chat.id, sender, clean, "", replyTo);
+          } catch (e) {
+            set((st) => ({ error: friendly(e), chatMessages: st.chatMessages.filter((m) => m.id !== local.id) }));
+          }
+        })();
+      },
+
+      sendChatPhoto: (file: File, replyTo?: ChatMessage | null) => {
+        const s = stateRef.current;
+        const chat = s.openChat;
+        const sender = s.user?.uid;
+        if (!chat || !sender) return;
+        const preview = URL.createObjectURL(file);
+        const local: ChatMessage = {
+          id: `local-${Date.now()}`,
+          senderId: sender,
+          text: "",
+          createdAt: Date.now(),
+          imageUrl: preview,
+          ...(replyTo ? { replyToId: replyTo.id, replyText: repo.replySnippet(replyTo), replySenderId: replyTo.senderId } : {}),
+        };
+        set((st) => ({ chatMessages: [...st.chatMessages, local] }));
+        (async () => {
+          try {
+            const blob = await compressPhoto(file, 1280);
+            await repo.ensureChat(chat);
+            const url = await repo.uploadChatPhoto(chat.id, sender, blob);
+            await repo.sendMessage(chat.id, sender, "", url, replyTo);
           } catch (e) {
             set((st) => ({ error: friendly(e), chatMessages: st.chatMessages.filter((m) => m.id !== local.id) }));
           }
